@@ -1,0 +1,154 @@
+
+-------------------------------------------------------------------
+-- 3.0.1 for DCS:A-10C
+
+Fixes:
+- Fixed saving bantables
+- Minor fixes with server pause / unpause, previous release did not include the updated code.
+- Fixed kick, failed due to saving of bantables
+- Minor fixes for the Set command as well as helptexts.
+- Fixed a problem with sloppy coding in the Auto-restart of a mission, when mission wouldn't load as expected.
+- Timeset would not work if mission_restart was used instead of mission_rotate. Devs has been given a crashcourse into checking their own code before release, this wont happen again.
+
+Changes:
+- /HELP made more useful. You can now search for parts of any keyword. Eg /help ban or /help list
+- Lifting a ban now leaves a comment about who lifted the ban.
+- ServMan will use "\Saved Games\DCS Warthog\ServMan3" for any saving - or loading modded configs.
+All saving will happen in this directory. Will not longer save files in the DCS install directory.
+
+NEW *** Custom config can be SAVED or LOADED. ***
+With the config profiles, you can now quickly load a PUBLIC or SQUAD config if you like.
+When settings are saved, all the relevant SERVMAN settings will be saved to a new file
+in the "\Saved Games\DCS Warthog\ServMan3".
+
+CONFIG Syntax:
+	/CONF SAVE MyPublicConf or /CONF LOAD public
+	or just /CONF
+
+Explanation: 
+	- 'SAVE' and 'LOAD' are keywords.
+	- SAVE: MyPublicConf is the name for the file.
+	- LOAD: 'public' acts as a filter, loading first file matching 'public', which is 'MyPublicConf'.
+Without the keywords, CONF will list available configs.
+
+About the files:
+	- Files will be assigned the prefix CONF_ and suffix .lua. Ex: "CONF_MyPublicConf.lua" or "CONF_noTeamKills.lua" etc
+	- Files are saved in or loaded from the "\Saved Games\DCS Warthog\ServMan3"
+/INFO now includes the config which is in effect.
+
+NEW *** miz_rotate_announcement: Will do a onscreen countdown before mission rotate / restart.
+Will display a "time left before restart / rotate"
+In the serverconfig.lua:
+	-- NOTE: Order must be incremental, smallest numbers first.
+	-- miz_rotate_announcement = { 1,2,3,4,5,10,15,60,120,180 },	-- at 3 hours, 2 hours, 1 hour, 15 mins, 10 mins, and every min from 5 to 1 min
+	-- miz_rotate_announcement = { 1,5,10,15,60 },			-- at 1 hour, 15 mins, 10 mins, 5 min and final call at 1 min.
+	-- miz_rotate_announcement = { 0 }, 				-- disabled
+	miz_rotate_announcement = { 1,2,3,4,5,10,15,60 },
+
+-------------------------------------------------------------------
+-- 3.0 for DCS:A-10C
+
+- Compatability with DCS:A-10C 1.1.0.7+
+Not for DCS:BS 1.0.2 nor FC2 1.0.2
+- Minor fixes with server pause / unpause.
+ 
+-------------------------------------------------------------------
+-- 2.5 beta 11 for FC2 + DCS:BS
+
+- "/Set kicks=off" didn't quite work in all situations. Fixed.
+- "/ban somename comment here" didnt work as expected. Only /ban <id> worked. Fixed.
+- "/kick someone" banned them instead of kicking them. Fixed.
+- Ban-comments are now saved to the "conf_banned.lua" file.
+- Server-pause wasnt respected in some situation when server was started by advanced commanline parameters. Fixed.
+- /ver added.
+
+-------------------------------------------------------------------
+-- 2.5 beta 10 for FC2 + DCS:BS
+- New commandline interface, most commands been reworked.
+Notice:
+1. that most commands now support shortvariants such as /pl /h /mi /ki panz
+2. no more ":" being used in commands, only " " a space to separate the words.
+Full online help for all commands. See more detail online, /help, /help admin, /help mission
+NOTE: Help will ONLY list the commands a user has permission to use. Admins will have more commands and help available.
+---
+- Kick, ban, playerlist, vote-kick all now supports names, or parts of names
+A few commands also supports multiple names/id in one go.
+Where 'namefilters' can be used, such as in /players, it will list only the players which is matching the filter.
+Check /k ? /pl ? /v ? for more details.
+---
+- New commands: /whoami and /who <id>|namefilter
+See /who ? fore more details.
+---
+- Squad-login mode, one username and password for the full squad.
+Can also check that the member is using the correct tags in his name before allowing him to log on.
+Squad members will become mini-admins, just a few commands short of full admin.
+See /log ? more more details.
+See SERVERCONFIG.LUA and Squad section for configuration.
+---
+- conf_serverconfig.lua: Kicklevel=number
+Decides which accesslevel servman are allowed to kick. There are 5 levels.
+0 = anon, 1 = friend (not used yet), 2 = squadmember, 3 = admin, 4 = superadmin
+If kicklevel is set to 2, kicks & bans will reach out and touch squad-members and those below.
+---
+- Save and load Server-config to a separate file.
+/save conf
+Will save the current server configuration to "conf_serverconfig.lua". This will become your custom config file which
+can be loaded again by using:
+/load conf
+Note: To load server-defaults, use /reinit
+Note2: Server always loads DEFAULTS at startup.
+You then have to use /load conf to get your custom config if thats what you wish.
+---
+
+-------------------------------------------------------------------
+-- 2.1.6 alpha for FC2
+- Internal build. Servman moved out of \Scripts\net into \Scripts\Addons\Servman2
+- Started working on the new command interface.
+
+-------------------------------------------------------------------
+-- 2.1.5 alpha for FC2
+- Quickfix: Onscreen Warning when there are syntax errors in Serverconfig.lua
+Previously the server would have suffered quietly.
+
+-------------------------------------------------------------------
+-- v.2.1.4 alpha for FC2
+Resolved:
+- Kick+Ban in all variants works as expected.
+- UNKNOWN PLAYER messages is gone.
+- Fixed a minor problem with first mission in the mission list being repeated twice when mission-rotation was active.
+
+Improvements:
+- TEAM-chat messages is prefixed to all recievers with "#TEAMMSG: "
+  If you see "#TEAMMSG Tally bandit 310 for 40" from a BLUE - then RED cant see it and you know it's intended for your team only.
+  Note: When *you* type a TEAMMSG you wont see "#TEAMMSG" on your screen.
+- /missions now indicates which mission that is loaded and active. Look for ->1<- around the mission ID.
+- Chat-loggin. Look for the "ServMan-Chatlog-<datetime>.log". It will now log everything you see in the chat on the server. Kills, deaths, damages, kicks etc.
+- Server-logging. Look for the "ServMan-Serverlog-<datetime>.log"
+  New "loglevel" variable for logging detail level, see "serverconfig.lua" for details. Valid levels are 0 to 3.
+  Note: The format in the file may change in the future.
+  For you who look for a file to parse for your web - don't despair.
+  Coming soon is a pure "result / stats" based log.
+
+-------------------------------------------------------------------
+-- v.2.1.0 alpha for FC2
+- Compatability for FC2, reworking of the server/events to be compatible with FC2. Breaks compatability with DCS:BS.
+- Added out for chatlogs, all ingame text should be save, events like ejections & kills. All in one and the same log for easier reading.
+- More server events and callbask added for the server-net* logs.
+
+Changes in v2:
+
+- added compatibility with BS v1.0.1
+- added automatic kicking for team-damaging human players
+- added reporting/logging of team collisions
+- added manual name banning
+- added selective message sending to single players (no more message flooding)
+- added support for other languages (German localization included)
+- added kicking for high average ping
+- added /report command
+- added a new option that forces players to wait x minutes before they can start another votekick or missionvote/-poll
+- added additional checks to make sure that the logic which checks teamkills distinguishes human and AI players correctly
+- changed event triggering to use new on_process() API-callback, no more use of player ping and chat
+- fixed a bug where the kick counter would be increased too much when more than one kick rule applied to the same event
+- reactivated screenshot message to get rid of the "Unknown command: /mybad" message
+- fixed a logic bug where a human player with name "" could be mistaken as AI. Empty names are now banned by default
+- fixed the problem that the mod had to be uninstalled before playing as client
