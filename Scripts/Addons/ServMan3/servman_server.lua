@@ -56,6 +56,7 @@ local counter=0
 local MOTD_playerconnect=false
 sm_currconfig = sm_currconfig or ''
 sm_prevconfig = sm_prevconfig or ''
+missionfolder = 'D:\\Users\\aj\\Saved Games\\DCS.openbeta\\missions\\squad\\'
 
 -- init the first time compile
 if not servman_initcompleted then
@@ -276,11 +277,13 @@ end
 
 function on_process()
 	--check if events need to be fired every conf.timer_interval frames
-	if counter >= conf.timer_interval then
-		counter = 0
-		check_timeouts()
-	else
-		counter = counter + 1
+	if conf.timer_interval ~= nil and counter ~= nil then
+		if counter >= conf.timer_interval then
+			counter = 0
+			check_timeouts()
+		else
+			counter = counter + 1
+		end
 	end
 end
 
@@ -977,6 +980,27 @@ function servercmd_login(id,...)
 
 	local password = args[1]
 	local message
+
+	--[[ DEBUG/ - Ajax
+	local ajaxmsg = ""
+	for i,v in pairs(subadmins) do
+		ajaxmsg = ajaxmsg.." ;  "..i
+	end
+	serv_msg(ajaxmsg)
+	
+	message = "Squad login enabled = "..tostring(conf.squad_login_enable)
+	log_write(message)
+	serv_msg(message)
+	
+	message = "Squad admins count = "..tostring(#subadmins)
+	log_write(message)
+	serv_msg(message)
+	
+	message = string.format("Current name = %q",name)
+	log_write(message)
+	serv_msg(message)
+	--]]
+	
 	if conf.squad_login_enable and tblPlayersSrv[id].permlevel>=permlevel.squad and	tblPlayersSrv[id].permlevel<permlevel.admin then
 		-- already logged in with squad, can proceed to admin.
 		password = args[1]
@@ -1065,7 +1089,7 @@ function servercmd_load(id, ...)
 	-- extract mission id from command
 	--local mission = tonumber(msg)
 	local arg = tonumber(args[1]) or tostring(args[1])
-	
+
 	if arg and type(arg)=='string' then
 		-- not a number, perhaps its a config?
 		if args[1] and string.len(args[1])>1 then
@@ -1100,7 +1124,8 @@ function servercmd_load(id, ...)
 			missionpoll("stop")
 			missionvote("stop")
 			msg = (_f("Member %q loads mission %q", tblPlayersSrv[id].name, miz_name))
-			net.load_mission("./Missions/Multiplayer/" .. miz_name)
+			--net.load_mission("./Missions/Multiplayer/" .. miz_name)
+			net.load_mission(missionfolder .. miz_name)
 			return msg
 		end	
 	end
@@ -1668,6 +1693,9 @@ function load_config(custom_conf_file)
 	
 	local function valid_table(tbl, str)
 		if not tbl or type(tbl)~="table" then
+		message = string.format("Invalid table: %q",str)
+		log_write(message)
+		serv_msg(message)
 			tbl = {}
 			disabled = disabled .. str.."; "
 			err4 = true
@@ -1835,6 +1863,13 @@ function load_config(custom_conf_file)
 			end
 		end
 	end
+	
+	if conf.missionfolder ~= nil then
+		missionfolder = conf.missionfolder
+	else
+		missionfolder = './missions/multiplayer/'
+	end
+	
 
 	--mission rotating has priority over restarting
 	if conf.restart_miz_after > 0 and conf.rotate_miz_after > 0 then
@@ -1890,10 +1925,12 @@ function load_config(custom_conf_file)
 	end
 
 	--load list of available MP missions in Missions/Multiplayer folder (see LuaFileSystem documentation)
+
 	update_configlist()
 	
 	--load list of available MP missions in Missions/Multiplayer folder (see LuaFileSystem documentation)
-	for mission in lfs.dir("./Missions/Multiplayer/") do
+	--for mission in lfs.dir("./Missions/Multiplayer/") do
+	for mission in lfs.dir(missionfolder) do
 		if string.sub(mission, -4) == ".miz" then
 			mp_missions[#mp_missions + 1] = mission
 			log_write(_f("SERVER:::load_config.addmission: [%s] %s", tostring(#mp_missions), tostring(mission)))
@@ -1902,7 +1939,8 @@ function load_config(custom_conf_file)
 	
 	--check if at least one mission is in missionlist
 	if #mp_missions == 0 then
-		log_write(_("ERROR: No missions found in Missions/Multiplayer folder, "
+		--log_write(_("ERROR: No missions found in Missions/Multiplayer folder, "
+		log_write(_(string.format("ERROR: No missions found in %q folder, ",missionfolder)
 				.. "script will not run correctly!"))
 		initerr = true
 	else
@@ -2004,8 +2042,8 @@ end
 function check_timeouts()
 	local miz_runtime = net.get_model_time()
 	--check if mission should be rotated, rotating has priority over restarting if both are enabled
-	if initerr then serv_msg(initerrmsg) end
-	if compileerr then serv_msg(compileerrmsg) end
+	if initerr then serv_msg("INIT error : "..tostring(initerrmsg)) end
+	if compileerr then serv_msg("COMPILE error : "..tostring(compileerrmsg)) end
 
 	local miz_remain
 	miz_remain = miz_remaining()
@@ -2074,7 +2112,8 @@ paused_on_miz = function(pause)
 end
 
 function mission_announce(miz_remain)
-	local curr_timer	
+	local curr_timer
+	if nil == miz_remain then return end
 	if last_MANN_interval~=nil and last_MANN_interval>0 then
 		curr_timer = MANN_timers[last_MANN_interval] * 60
 		if not (curr_timer==0) and miz_remain<=curr_timer then
@@ -2103,6 +2142,7 @@ function miz_annc_init(miz_remain)
 	
 	if miz_remain==nil then
 		miz_remain=miz_remaining()
+		if nil == miz_remain then return end
 	end
 	curr_timer = MANN_timers[last_MANN_interval] * 60
 	if miz_remain <= curr_timer then 
@@ -2300,7 +2340,7 @@ end
 function rotate_miz()
 	log_write("SERVER::rotate_miz()")
 	if not current_mission and #mp_missions>0 then
-		-- servman was rehashed, using first available mission
+		-- servma	n was rehashed, using first available mission
 		current_mission = mp_missions[1]
 	end
 	if #mp_missions > 0 then
@@ -2321,7 +2361,8 @@ function rotate_miz()
 
 		--load next mission
 		log_write(_f("Automatic mission rotation: loading mission %q", next_miz))
-		return net.load_mission("./Missions/Multiplayer/" .. next_miz)
+		--return net.load_mission("./Missions/Multiplayer/" .. next_miz)
+		return net.load_mission(missionfolder .. next_miz)
 	else
 		log_write(_f("Just one mission available - restarting mission"))
 		return restart_miz()
@@ -2482,32 +2523,60 @@ end
 
 function list_highlight_number(playerid,list,highliteId)
 	local index = 1
-	local len, msg, leftEntry
-	local idformat = "%d"
+	local len, msg, leftEntry, midEntry
+	local idformat = "%2d"
 	local widthmultipl = 1.7 -- defines the "general width factor" of "any" character vs whitespaces within the current fontset.
 	
 	for id, entry in pairs(list) do
 		--entry in left column
-		if id == highliteId then idformat = "->%d<-" else idformat = "%d - " end
+		if id == highliteId then idformat = "->%2d<- " else idformat = "  %2d - " end
 		if index == 1 then
 			len = string.len(entry)
-			if len > 40 then 
-				leftEntry = string.format(idformat.."%q", id, string.sub(entry, 1 , 40))
+			if len > 33 then 
+				leftEntry = string.format(idformat.."%-33s", id, string.sub(entry, 1 , 33))
 			else
-				leftEntry = string.format(idformat.."%q", id, entry)
+				leftEntry = string.format(idformat.."%-33s", id, entry)
 			end
 			index = 2
 			-- padding the width for easier readability before index2
 			len = string.len(leftEntry)
-			leftEntry = leftEntry .. string.rep(" ",80-(len*widthmultipl))
+			--leftEntry = leftEntry .. string.rep(" ",80-(len))
+			--leftEntry = leftEntry .. string.rep(" ",80-(len*widthmultipl))
 		--entry in right column
+		elseif index == 2 then
+			len = string.len(entry)
+			if len > 33 then 
+				leftEntry = leftEntry..string.format(idformat.."%-33s", id, string.sub(entry, 1 , 33))
+			else
+				leftEntry = leftEntry..string.format(idformat.."%-33s", id, entry)
+			end
+			--msg = string.format("%s | "..idformat.."%-33s", leftEntry, id, entry)
+			--serv_msg(msg, playerid)
+			index = 3	
+		elseif index == 3 then
+			len = string.len(entry)
+			if len > 33 then 
+				leftEntry = leftEntry..string.format(idformat.."%-33s", id, string.sub(entry, 1 , 33))
+			else
+				leftEntry = leftEntry..string.format(idformat.."%-33s", id, entry)
+			end
+			--msg = string.format("%s | "..idformat.."%-33s", leftEntry, id, entry)
+			--serv_msg(msg, playerid)
+			index = 4	
 		else
-			msg = string.format("%s  |  "..idformat.."%q", leftEntry, id, entry)
-			serv_msg(msg, playerid)
-			index = 1
+			len = string.len(entry)
+			if len > 33 then 
+				leftEntry = leftEntry..string.format(idformat.."%-33s", id, string.sub(entry, 1 , 33))
+			else
+				leftEntry = leftEntry..string.format(idformat.."%-33s", id, entry)
+			end
+			--msg = string.format("%s | "..idformat.."%-33s", leftEntry, id, entry)
+			--serv_msg(msg, playerid)
+			serv_msg(leftEntry, playerid)
+			index = 1	
 		end
 	end
-	if index == 2 then --last entry in left column
+	if index == 2 or index == 3 or index == 4 then --last entry not yet printed
 		serv_msg(leftEntry, playerid)
 	end
 end
@@ -2967,7 +3036,8 @@ function missionvote(event, id, msg)
 			dummy, result, mission_name = assert(coroutine.resume(co_missionvote, "check"))
 			if result == 1 then
 				co_missionvote = nil
-				return net.load_mission("./Missions/Multiplayer/" .. mission_name)
+				--return net.load_mission("./Missions/Multiplayer/" .. mission_name)
+				return net.load_mission(missionfolder .. mission_name)
 			elseif result == 0 then
 				co_missionvote = nil
 			end
@@ -3169,7 +3239,8 @@ function missionpoll(event, id, msg)
 			dummy, result = assert(coroutine.resume(co_missionpoll, "check"))
 			if result > 0 then
 				co_missionpoll = nil
-				return net.load_mission("./Missions/Multiplayer/" .. mp_missions[result])
+				--return net.load_mission("./Missions/Multiplayer/" .. mp_missions[result])
+				return net.load_mission(missionfolder .. mp_missions[result])
 			elseif result == 0 then
 				co_missionpoll = nil
 			end
