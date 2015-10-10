@@ -107,6 +107,7 @@ And everybody who played on the beta servers!
 
 
 +++++ EAGLE DYNAMICS +++++
+
 ServMan uses DCS networking API and extends the files of these engines. 
 All rights regarding these files belong to Eagle Dynamics, Russia/The Fighter Collection, UK.
 
@@ -114,6 +115,7 @@ We would especially like to thank c0ff, Dmut, Ulrich, dsb, Chizh for their help 
 
 
 +++++ LUASOCKET +++++
+
 Powered by Lua 5.1 with LuaSocket 2.0 library by the following notice:
 Copyright © 1994-2008 Lua.org, PUC-Rio. 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: 
@@ -123,6 +125,7 @@ http://www.lua.org
 
 
 +++++ LUAFILESYSTEM +++++
+
 This project uses LuaFileSystem
 Copyright © 2003 Kepler Project.
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
