@@ -17,9 +17,9 @@ local Serialize = require('Serializer')
 
 net.log("SERVMAN:SERVER Script loading")
 
-sm_flavor = "DCS:A-10C 1108"
+sm_flavor = "DCS:World 1.2.14"
 sm_versionmajor = 3
-sm_versionminor = 0
+sm_versionminor = 1
 sm_build = 1
 smversionstring = string.format("SERVMAN v.%d.%d.%d for %s", sm_versionmajor, sm_versionminor, sm_build,sm_flavor)
 sm_short=string.format("SERVMAN %d.%d.%d:", sm_versionmajor, sm_versionminor, sm_build)
@@ -103,6 +103,8 @@ if not servman_initcompleted then
 	--value is subtable with fields "last_time" and (number) and "kicks" (number)
 	kicked_players = {}
 	
+	-- added by grimes 
+	kick_phrase = {}
 	--table with server configuration variables from serverconfig.lua file
 	conf = {}
 	
@@ -258,6 +260,7 @@ function on_net_stop()
 	banned_hosts = nil
 	banned_IP_ranges = nil
 	banned_names = nil
+	kick_phrase = nil
 	subadmins = nil
 	conf = {}
 	tblPlayersSrv = {}
@@ -420,6 +423,33 @@ function on_chat(id, msg, all)
 		local msg2 = string.format("Received command: %q from %q", msg, tostring(tblPlayersSrv[id].name))
 		serv_msg(msg2, 1)
 		return servercommand(id, msg)
+	end
+	
+	if conf.kick_on_phrase then
+		local newMsg = deepCopy(msg) -- this code modifies all messages, so make a true copy of it
+		local exclude = {'%-', '%(', '%)', '%_', '%[', '%]', '%.', '%#', '% ', '%{', '%}', '%$', '%%', '%?', '%+', '%^'} -- from mist, removes listed char cause lua cant search em
+		for i , str in pairs(exclude) do
+			newMsg = string.gsub(newMsg, str, '')
+		end
+		newMsg = string.lower(newMsg)
+		for i, phrase in pairs(kick_phrase) do
+			for x, str in pairs(exclude) do
+				phrase = string.gsub(phrase, str, '')
+			end
+			phrase = string.lower(phrase)
+			if string.find(newMsg, phrase) then
+				log_write('Kicking user for saying the following: ' .. phrase)
+				-- could bypass this? if I really wanted to I guess. 
+				-- But need an admin ID for message to not state "autmoatically kicked"
+				-- suggest server owner, cause why not?
+				
+				BanKickManager(id, 'admin', '---------Write Reason Here-----------')
+				--kick the fool
+				return nil  -- chat message will show up in logs but it won't be displayed on the server for everyone.
+				
+				
+			end
+		end
 	end
 
 	-- prefix for Teammessage in chatlog
@@ -1711,7 +1741,7 @@ function load_config(custom_conf_file)
 	local ok = false
 	--tmp holders, until the loaded table can be verified
 	local cmdprf, tmp_permlevel, tmp_maincmd, tmp_mainhelp, tmp_dynamicsettings
-	local tmp_conf, tmp_defaultconf, tmp_subadmins, tmp_banned_IP_ranges, tmp_banned_names
+	local tmp_conf, tmp_defaultconf, tmp_subadmins, tmp_banned_IP_ranges, tmp_banned_names, tmp_kick_phrase
 	
 
 	--load commands
@@ -1719,7 +1749,7 @@ function load_config(custom_conf_file)
 	ok, tmp_dynamicsettings = get_conftable("dynsettings.lua")
 	
 	--if customconf==true then
-	ok, tmp_defaultconf, tmp_subadmins, tmp_banned_IP_ranges, tmp_banned_names = get_conftable("serverconfig.lua")
+	ok, tmp_defaultconf, tmp_subadmins, tmp_banned_IP_ranges, tmp_banned_names, tmp_kick_phrase = get_conftable("serverconfig.lua")
 	
 	-- a new configuration may have been specified?
 	if sm_currconfig~='' then
@@ -1754,7 +1784,8 @@ function load_config(custom_conf_file)
 	subadmins			= valid_table(tmp_subadmins			, "subadmins")
 	banned_IP_ranges	= valid_table(tmp_banned_IP_ranges	, "banned_IP_ranges")
 	banned_names		= valid_table(tmp_banned_names		, "banned_names")
-
+	
+	kick_phrase			= valid_table(tmp_kick_phrase		, "kick_phrase")
 	-- check all parameters for errors, set default if error
 	param_valid("language", "string", "en")
 	param_valid("missionvotes", "boolean", false)	
@@ -3541,7 +3572,24 @@ function get_conftable(conf_file)
 		
 end	
 
-
+-- Creates a true copy of object -- from mist
+function deepCopy(object)
+	local lookup_table = {}
+	local function _copy(object)
+		if type(object) ~= "table" then
+			return object
+		elseif lookup_table[object] then
+			return lookup_table[object]
+		end
+		local new_table = {}
+		lookup_table[object] = new_table
+		for index, value in pairs(object) do
+			new_table[_copy(index)] = _copy(value)
+		end
+		return setmetatable(new_table, getmetatable(object))
+	end
+	return _copy(object)
+end
 
 ------------------------------------------------------------------
 --GLOBAL SERVER FUNCTIONS :

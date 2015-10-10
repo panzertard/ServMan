@@ -1,8 +1,8 @@
 ------------------------------------------------------------------
 -- SERVMAN SERVER MANAGEMENT MOD
 -- FILE: serverconfig.lua
--- VERSION: 2.5
--- AUTHORS: Acedy, Panzertard, =RvE=Yoda
+-- VERSION: 3.1
+-- AUTHORS: Acedy, Panzertard, =RvE=Yoda, Grimes
 ------------------------------------------------------------------
 
 ------------------------------------------------------------------
@@ -185,6 +185,12 @@ local config =
 	kickbanlevel		= 2,
 	
 	missionfolder		= lfs.writedir() .. '\Missions', -- not tested yet with DCS 1.5
+
+	kick_on_phrase 		= true,
+	-- added by Grimes in version 3.1.1
+	-- Searches DB of words. if a chat message features one of the words the player will be kicked.
+	--
+}
 }
 
 
@@ -241,5 +247,10 @@ local banned_names =
 {
 	["unknown"] = true
 }
-
-return { config, subadmins, banned_IP_ranges, banned_names }
+-- kick phrases seperated by commas. Note that the script automatically filters out a number of characters due to the string.find() function not liking it. Function also makes all text lower case.
+-- {'-', '(', ')', '_', '[', ']', '.', '#', ' ', '{', '}', '$', '%', '?', '+', '^'}
+local kick_phrase = 
+{
+	'curseword',
+}
+return { config, subadmins, banned_IP_ranges, banned_names, kick_phrase}
